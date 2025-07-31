@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 // This file is intended to be executed by "go generate".

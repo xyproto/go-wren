@@ -134,10 +134,10 @@ func TestCallWren(t *testing.T) {
 
 func TestLoadModule(t *testing.T) {
 	vm := wren.NewVM()
-	wren.SetModulesDir("testdata/modules")
+	vm.SetModulesDir("testdata/modules")
 
 	if err := vm.Interpret(`import "hello" for Hello
-		Hello.World()`); err != nil {
+		Hello.world()`); err != nil {
 		t.Log("module load error: ", err)
 		t.FailNow()
 	}

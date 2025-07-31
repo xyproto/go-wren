@@ -4,7 +4,7 @@ import (
 	"github.com/dradtke/go-wren"
 )
 
-func ExampleWrenVM_Interpret() {
+func ExampleVM_Interpret() {
 	const program = `
 		System.print("Hello from Wren!")
 	`

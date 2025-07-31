@@ -6,42 +6,41 @@
 // all you need to do is create a new virtual machine instance and interpret
 // some Wren code:
 //
-//      package main
+//	package main
 //
-//      import (
-//      	"github.com/dradtke/go-wren"
-//      	"log"
-//      )
+//	import (
+//		"github.com/dradtke/go-wren"
+//		"log"
+//	)
 //
-//      func main() {
-//      	vm := wren.NewVM()
-//      	if err := vm.Interpret(`System.print("Hello, Wren!")`); err != nil {
-//      		log.Println(err)
-//      	}
-//      }
+//	func main() {
+//		vm := wren.NewVM()
+//		if err := vm.Interpret(`System.print("Hello, Wren!")`); err != nil {
+//			log.Println(err)
+//		}
+//	}
 //
 // However, it's also possible to register foreign classes and methods in Go that can
 // be called from Wren, and to execute Wren code directly from Go.
 //
-// Foreign Function Limits
+// # Foreign Function Limits
 //
 // Due to Go's inability to generate C-exported functions at runtime, the number of
 // foreign methods able to be registered with the Wren VM through this package is limited
 // to 128. This number is completely arbitrary, though, and can be changed by modifying
 // the directive at the bottom of wren.go and running "go generate". If you feel like
 // this number is a terrible default, pull requests will be happily accepted.
-//
 package wren
 
 // #cgo CFLAGS: -I${SRCDIR}/wren/src/include
-// #cgo LDFLAGS: -L${SRCDIR}/wren/lib -lwren -lm
+// #cgo LDFLAGS: ${SRCDIR}/wren/lib/libwren.a -lm
 // #include <wren.h>
 //
 // extern void write(WrenVM*, char*);
 // extern void* bindMethod(WrenVM*, char*, char*, bool, char*);
 // extern WrenForeignClassMethods bindClass(WrenVM*, char*, char*);
 // extern void writeErr(WrenVM*, WrenErrorType, char* module, int line, char* message);
-// extern char* loadModule(WrenVM*, char*);
+// extern WrenLoadModuleResult loadModule(WrenVM*, char*);
 import "C"
 import (
 	"bytes"
@@ -118,7 +117,7 @@ func (vm *VM) setUserData(key string, val interface{}) {
 // fullName should be a fully-qualified description string for the method. In particular,
 // it should look like this:
 //
-//     "[static ]<class>.<method>"
+//	"[static ]<class>.<method>"
 //
 // At minimum, it should have the class name and the method name separated by a period,
 // optionally with the word "static" out front to denote that it's a static method.
@@ -344,7 +343,7 @@ func write(vm *C.WrenVM, text *C.char) {
 	fmt.Fprint(out, C.GoString(text))
 }
 
-//helper
+// helper
 func readModule(dir string, name string) (string, error) {
 	// Precedence (dir/name.wren) next (dir/name/module.wren)
 	for _, filename := range []string{
@@ -361,14 +360,14 @@ func readModule(dir string, name string) (string, error) {
 }
 
 //export loadModule
-func loadModule(vm *C.WrenVM, name *C.char) *C.char {
+func loadModule(vm *C.WrenVM, name *C.char) C.WrenLoadModuleResult {
 	var module string = C.GoString(name)
 
 	// Ensure module does not have undesired characters
 	// that can pose thread to remote-code-inclusions
 	if strings.Contains(module, "..") {
 		// early return with no-code
-		return C.CString("")
+		return C.WrenLoadModuleResult{source: nil, onComplete: nil, userData: nil}
 	}
 
 	var source string
@@ -387,7 +386,15 @@ func loadModule(vm *C.WrenVM, name *C.char) *C.char {
 		}
 	}
 
-	return C.CString(source)
+	if source == "" {
+		return C.WrenLoadModuleResult{source: nil, onComplete: nil, userData: nil}
+	}
+
+	return C.WrenLoadModuleResult{
+		source:     C.CString(source),
+		onComplete: nil,
+		userData:   nil,
+	}
 }
 
 //export bindMethod
