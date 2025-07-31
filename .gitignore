@@ -61,3 +61,4 @@ venv/
 
 cmd/repl/repl
 wren-repl
+repl
