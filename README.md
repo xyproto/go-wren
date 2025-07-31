@@ -1,4 +1,4 @@
-go-wren
+wrenrepl
 =======
 
 [![GoDoc](https://godoc.org/github.com/xyproto/go-wren?status.png)](https://godoc.org/github.com/xyproto/go-wren)
