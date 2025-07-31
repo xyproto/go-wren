@@ -7,6 +7,8 @@ This package provides Go bindings to the [Wren](http://wren.io/index.html) scrip
 
 This is a fork of https://github.com/dradtke/go-wren
 
+Includes a simple REPL in cmd/repl
+
 Getting Started
 ---------------
 

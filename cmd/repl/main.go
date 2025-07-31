@@ -13,18 +13,12 @@ import (
 )
 
 const (
-	promptPrefix    = "wren> "
+	promptPrefix    = "-> "
 	multilinePrefix = "... "
 	welcomeMessage  = `
-╭─────────────────────────────────────────╮
-│           Wren Interactive REPL         │
-│                                         │
-│  Type Wren code and press Enter to      │
-│  execute. Use .help for commands.       │
-│                                         │
-│  Multi-line input: Use \ at end of      │
-│  line to continue on next line.         │
-╰─────────────────────────────────────────╯
+╭─────────╮
+│ Wren <3 │
+╰─────────╯
 `
 )
 
@@ -105,11 +99,10 @@ func (r *REPL) completer(d prompt.Document) []prompt.Suggest {
 	}
 
 	text := d.GetWordBeforeCursor()
-	if strings.HasPrefix(text, ".") {
-		return prompt.FilterHasPrefix(replCommands, text, true)
-	}
 
-	return prompt.FilterHasPrefix(keywords, text, true)
+	// Show REPL commands along with keywords
+	allSuggestions := append(replCommands, keywords...)
+	return prompt.FilterHasPrefix(allSuggestions, text, true)
 }
 
 func (r *REPL) executor(input string) {
@@ -120,8 +113,9 @@ func (r *REPL) executor(input string) {
 		return
 	}
 
-	// Handle REPL commands
-	if strings.HasPrefix(input, ".") {
+	// Handle REPL commands (check for commands without prefix first)
+	switch input {
+	case "help", "exit", "quit", "clear", "history", "reset":
 		r.handleCommand(input)
 		return
 	}
@@ -172,7 +166,7 @@ func (r *REPL) handleCommand(cmd string) {
 	switch cmd {
 	case "help":
 		r.showHelp()
-	case "exit", ".quit":
+	case "exit", "quit":
 		r.colors.info.Println("Goodbye!")
 		os.Exit(0)
 	case "clear":
@@ -183,19 +177,18 @@ func (r *REPL) handleCommand(cmd string) {
 		r.resetVM()
 	default:
 		r.colors.error.Printf("Unknown command: %s\n", cmd)
-		r.colors.info.Println("Type .help for available commands")
 	}
 }
 
 func (r *REPL) showHelp() {
 	help := `
 Available Commands:
-  .help     - Show this help message
-  .exit     - Exit the REPL (Ctrl+C also works)
-  .quit     - Exit the REPL (Ctrl+C also works)
-  .clear    - Clear the screen
-  .history  - Show command history
-  .reset    - Reset the VM state
+  help     - Show this help message
+  exit     - Exit the REPL (Ctrl+C also works)
+  quit     - Exit the REPL (Ctrl+C also works)
+  clear    - Clear the screen
+  history  - Show command history
+  reset    - Reset the VM state
 
 Wren Language Features:
   - Variables: var name = "value"
@@ -296,7 +289,6 @@ func (r *REPL) Run() {
 
 	// Print welcome message
 	r.colors.success.Print(welcomeMessage)
-	r.colors.info.Println("Type .help for available commands or start typing Wren code!")
 	fmt.Println()
 
 	// Set up the prompt
@@ -318,6 +310,13 @@ func (r *REPL) Run() {
 		prompt.OptionSelectedSuggestionTextColor(prompt.Black),
 		prompt.OptionDescriptionBGColor(prompt.Black),
 		prompt.OptionDescriptionTextColor(prompt.White),
+		prompt.OptionAddKeyBind(prompt.KeyBind{
+			Key: prompt.ControlC,
+			Fn: func(buf *prompt.Buffer) {
+				r.colors.info.Println("\nGoodbye!")
+				os.Exit(0)
+			},
+		}),
 	)
 
 	p.Run()
